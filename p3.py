@@ -5,8 +5,8 @@ import time
 from collections import deque
 
 total_com = 57731386986
-start = 0
-end = 10000
+startRange = 0
+endRange = 10000
 
 class Singleton(object):
 	_instance = None
@@ -18,11 +18,16 @@ class Singleton(object):
 			cls._instance = super(Singleton, cls).__new__(cls, *args, **kwargs)
 		return cls._instance
 
-	def getCliQueue():
+	def getCliQueue(self):
 		return self.cli_queue
 
-	def getWorkers():
+	def getFirstClient(self):
+		return self.cli_queue.popleft()
+
+	def getWorkers(self):
 		return self.workers
+
+	# def gerCurrentWorkers(worker):
 
 class Client():
 	def __init__(self, addr, hashValue):
@@ -45,9 +50,9 @@ class Worker():
 	def __init__(self, addr, status):
 		self.addr = addr
 		self.status = status
-		self.hashValue = hashValue
-		self.start = 0  
-		self.end = 0
+		self.hashValue = ''
+		self.startRange = 0  
+		self.endRange = 0
 
 	def setAddr(self, addr):
 		self.addr = addr
@@ -58,14 +63,14 @@ class Worker():
 	def setHashValue(self, hashValue):
 		self.hashValue = hashValue
 
-	def setStart(self, start):
-		self.start = start
+	def setStart(self, startRange):
+		self.startRange = startRange
 
-	def setEnd(self, end):
-		self.end = end
+	def setEnd(self, endRange):
+		self.endRange = endRange
 
 	def getAddr(self):
-		return self.getAddr
+		return self.addr
 
 	def getStatus(self):
 		return self.status
@@ -74,39 +79,30 @@ class Worker():
 		return self.hashValue
 
 	def getStart(self):
-		return self.start 
+		return self.startRange 
 
 	def getEnd(self):
-		return self.end
+		return self.endRange
 
 class TransferHandler():
 	def __init__(self, data):
 		self.data = data
-
-	def run(self):
-		global start
-		global end
+		global startRange
+		global endRange
+		print "TransferHandler"
 		st = Singleton()
 		workers = st.getWorkers()
 		for i in workers:
-			addr = i.getAddr()
-			data = "as:" + self.start + ":" + self.end + ":" + self.data
+			data = "as:" + str(startRange) + ":" + str(endRange) + ":" + self.data
 			sock = s.socket(s.AF_INET, s.SOCK_DGRAM)
-			sock.sendto(data, (addr))
+			sock.sendto(data, (i.getAddr()))
+			print "sent"
 			i.setStatus("busy")
-			start += 10000
-			end += 10000
-			i.setStart(start)
-			i.setEnd(end)
+			startRange += 10000
+			endRange += 10000
+			i.setStart(startRange)
+			i.setEnd(endRange)
 			i.setHashValue(self.data)
-
-class Manager(threading.Thread):
-	def __init(self):
-		threading.Thread.__init__(self)
-
-	def range_manager(self):
-		global total_com
-		chunk = int(total_com/8)
 		
 class HandleClientConnection(threading.Thread):
 	def __init__(self, data, addr, serverSocket):
@@ -123,9 +119,10 @@ class HandleClientConnection(threading.Thread):
 			clients.append(client)
 			workers = st.getWorkers()
 			if workers:
+				self.serverSocket.sendto("Please wait while we are trying to crack the password!!!!", self.addr)
 				TransferHandler(self.data.split(":")[1])
 			else:
-				self.serverSocket.sendto("Currently the system is not avaliable, please try again later")
+				self.serverSocket.sendto("Currently the system is not avaliable, please try again later", self.addr)
 				return
 		else:
 			print "Good bye", self.addr
@@ -159,14 +156,36 @@ class HandleWorkerDoneNotFound(threading.Thread):
 		self.hash = data.split(":")[1]
 
 	def run(self):
-		global start
-		global end 
-		data = "as:" + start + ":" + end ":" + self.hash 
+		global startRange
+		global endRange 
+		st = Singleton()
+		workers = st.getWorkers()
+		data = "as:" + startRange + ":" + endRange + ":" + self.hash 
 		self.serverSocket.sendto(data, (self.addr))
+		for i in workers:
+			if i.getAddr() == self.addr:
+				i.setStart(startRange)
+				i.setEnd(endRange)
+				i.setHashValue(self.hash)
 
-class HandleWorkerDoneFound(threading.Thread):
-	def __init__(self, data, addr, serverSocket):
-		threading.Thread.__init__(self)
+# class HandlePingClientServerConnection(threading.Thread):
+# 	def __init__(self, data, addr, serverSocket):
+# 		threading.Thread.__init__(self)
+# 		self.data = data
+# 		self.addr = addr
+# 		self.serverSocket = serverSocket
+
+# 	def run(self):
+# 		st = Singleton()
+# 		workers = st.getWorkers()
+# 		for i in workers:
+# 			serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
+# 			serverSocket.bind((i.getAddr()))
+# 			serverSocket.sendto(self.data, self.addr)
+
+# class HandleWorkerDoneFound(threading.Thread):
+# 	def __init__(self, data, addr, serverSocket):
+# 		threading.Thread.__init__(self)
 
 if __name__ == '__main__':
 	serverPort = 3333
@@ -179,6 +198,9 @@ if __name__ == '__main__':
 			thread.start()
 		elif data[:2] == "cp":
 			thread = HandleClientConnection(data, addr, serverSocket)
+			thread.start()
+		elif data[:2] == "ps":
+			thread = HandlePingClientServerConnection(data, addr, serverSocket)
 			thread.start()
 		elif data[:2] == "nf":
 			thread = HandleWorkerDoneNotFound(data, addr, serverSocket)
