@@ -17,38 +17,25 @@ class Worker(threading.Thread):
 		answer = crack(self.start, self.end, self.hash)
 		return answer
 
-	def convert62(n):
-		def combination(i):
-			if i >= 1:
-				return (62 ** i) + combination(i-1)
-			else:
-				return (62 ** i)
-
-		def setString(no,iter,a):
-			if(iter == 1):
-				return str(a[no % 62])
-			elif(iter == 2):
-				return str(a[((no - 0) / 62) % 62 - 1])
-			else:
-				return str(a[((no - 62 ** (iter - 2)) / 62 ** (iter - 1)) % 62 - 1])
-
+	def convert(no, al=0):
 		alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-		s = ""
-		iterate = 1
-		while True:
-			if(n < combination(iterate)-1):
-				s +=  setString(n,iterate,alphabet)
-				return s[::-1] 
+		if(no < 62):
+			return alphabet[no]
+		else:
+			al = no % 62
+			no = no // 62
+			if (no == 0):
+				no = 0
 			else:
-				s += setString(n,iterate,alphabet)
-				iterate = iterate + 1
+				no = no - 1
+			return  convert(no,al)+ alphabet[al]
 
 	def crack(start,end,hash):
-		status = 0
+		status = "ND"
 		for i in range(start,end+1):
-			if(crypt(convert62(i), "ic") == hash):
-				return convert62(i)
-		status = ""
+			if(crypt(convert(i), "ic") == hash):
+				return "DF:" + convert(i)
+		status = "NF:" + hash
 		return status
 
 
@@ -69,6 +56,7 @@ class WorkerClient(threading.Thread):
 				status = ""
 			elif buf[:2] == "as":
 				print "server assign task to worker"
+				self.connSocket.sendto("wa",(host, port))
 				l = buf.split(":")
 				s = l[1]
 				e = l[2]
@@ -81,7 +69,7 @@ class WorkerClient(threading.Thread):
 			elif buf[:2] == "kp":
 				print "kill worker process"
 				w.exit()
-
+				self.connSocket.sendto("kp",(host, port))
 if __name__ == '__main__':
 	serverPort = 3333
 	hostIP = "169.254.182.174"
