@@ -7,32 +7,35 @@ import socket as s
 import time 
 
 class Worker(threading.Thread):
-	def intToStr(n):
+	def __init__(self,start,end,hash):
+		threading.Thread.__init__(self)
+		self.start = start
+		self.end = end
+		self.hash = hash
+
+	def run(self):
+		answer = crack(self.start, self.end, self.hash)
+		return answer
+
+	def convert(no, al=0):
 		alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-		iterate = 1
-		str = ""
-		if(n >= 62):
-			temp = n % 62
-			str = str + alphabet[temp]
-			iterate += 1 
-			while True:
-				co = n - (n % 62 ** (iterate -1))
-				temp = (co / 62 ** (iterate - 1)) - 1
-				if (temp <= 61): 
-					str += alphabet[temp]
-					return str[::-1]
-				else:
-					str += alphabet[temp % 62]
-					iterate += 1
+		if(no < 62):
+			return alphabet[no]
 		else:
-			return alphabet[n]
+			al = no % 62
+			no = no // 62
+			if (no == 0):
+				no = 0
+			else:
+				no = no - 1
+			return  convert(no,al)+ alphabet[al]
 
 	def crack(start,end,hash):
-		status = 0
+		status = "ND"
 		for i in range(start,end+1):
-			if(crypt(intToStr(i), "ic") == hash):
-				return intToStr(i)
-		status = -1
+			if(crypt(convert(i), "ic") == hash):
+				return "DF:" + convert(i)
+		status = "NF:" + hash
 		return status
 
 
@@ -45,17 +48,28 @@ class WorkerClient(threading.Thread):
 
 	def run(self):
 		self.connSocket.sendto("rw", (host, port))
+		status = ""
 		while True:
 			buf, address = self.connSocket.recvfrom(1024)
 			if buf == "rs":
 				print "have connection with server"
+				status = ""
 			elif buf[:2] == "as":
 				print "server assign task to worker"
+				self.connSocket.sendto("wa",(host, port))
+				l = buf.split(":")
+				s = l[1]
+				e = l[2]
+				h = l[3]
+				w = Worker(s,e,h)
+				status = w.start()
 			elif buf[:2] == "ps":
-				print ""
+				print "server ask worker for work progress"
+				self.connSocket.sendto(status,(host, port))
 			elif buf[:2] == "kp":
-
-
+				print "kill worker process"
+				w.exit()
+				self.connSocket.sendto("kp",(host, port))
 if __name__ == '__main__':
 	serverPort = 3333
 	hostIP = "169.254.182.174"
