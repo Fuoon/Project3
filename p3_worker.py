@@ -3,6 +3,7 @@
 from argparse import ArgumentParser
 from crypt import crypt
 import threading
+# from thread import Timer
 import socket as s
 import time 
 
@@ -116,14 +117,18 @@ if __name__ == '__main__':
 			print "~~~ have connection with server ~~~"
 		elif buf[:2] == "as":
 			print "~~~ server aasign task to worker ~~~"
-			clientSocket.sendto( "wa", (hostIP, serverPort))
 			print buf
 			l = buf.split(":")
 			s = l[1]
 			e = l[2]
 			h = l[3]
 			w = Worker(s,e,h,clientSocket,hostIP,serverPort)
+			c = listenerServer(clientSocket,hostIP,serverPort,"wa")
+			w.setDaemon(True)
 			w.start()
+			c.start()
+			w.join()
+			c.join()
 		elif buf[:2] == "ps":
 			c = listenerServer(clientSocket,hostIP,serverPort,status)
 			print "~~~ got ping from server ~~~"
@@ -132,8 +137,9 @@ if __name__ == '__main__':
 			print "~~~ got kp from server ~~~"
 			c = listenerServer(clientSocket,hostIP,serverPort,"kp")
 			c.start()
+			if w.is_alive() == True:
+				print "~~~ thread still alive ~~~"
 			print "~~~ going to delete worker process ~~~"
-			
 		elif buf == "":
 			print "~~~ no data receive ~~~"
 
