@@ -4,22 +4,29 @@ import os
 from crypt import crypt
 import threading
 
+notDone = True
+
 def sendHashToServer(clientSocket, crypting, serverHost, serverPort):
 	clientSocket.sendto("cp:" + crypting, (serverHost, serverPort))
 
 class HandlePingServer(threading.Thread):
-	def __init__(self, data, addr, clientSocket, password):
+	def __init__(self, data, addr, clientSocket, crypting):
 		threading.Thread.__init__(self)
 		self.data = data
 		self.addr = addr
 		self.clientSocket = clientSocket
-		self.password = password
+		self.crypting = crypting
 
 	def run(self):
+		global notDone
 		print self.data[3:]
-		time.sleep(5)
 		print "Ping Server"
-		self.clientSocket.sendto("ps:" + self.password, (self.addr))
+		if notDone:
+			print "not finish cracking yet"
+			print notDone
+			self.clientSocket.sendto("ps:" + self.crypting, (self.addr))
+		else:
+			return
 
 if __name__ == '__main__':
 	serverPort = 3333
@@ -29,17 +36,28 @@ if __name__ == '__main__':
 	print "password:" + password
 	crypting = crypt(password, "ic")
 	print "hash: " + crypting
-	# send hash to server
 	sendHashToServer(clientSocket, crypting, serverHost, serverPort)
-	while True:
-		data, addr = clientSocket.recvfrom(1024)
-		if data:
-			if data[:2] == "ak":
-				thread = HandlePingServer(data, addr, clientSocket, password)
-				thread.start()
-			elif data == password:
-				print data
-				break
+	data, addr = clientSocket.recvfrom(1024)
+	if data:
+		if data[:2] == "ak":
+			time.sleep(5)
+			thread = HandlePingServer(data, addr, clientSocket, crypting)
+			thread.start()
+			while True:
+				data, addr = clientSocket.recvfrom(1024)
+				if data:
+					if data[:2] == "ak":
+						time.sleep(5)
+						thread = HandlePingServer(data, addr, clientSocket, crypting)
+						thread.start()
+					elif data == password:
+						notDone = False
+						print "data finish"
+						print notDone
+						print data
+						break
+				else:
+					w = threading.Timer(15.0, sendHashToServer)
+					w.start()
 		else:
-			w = threading.Timer(15.0, sendHashToServer)
-			w.start()
+			print data  
