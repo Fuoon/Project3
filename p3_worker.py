@@ -9,7 +9,9 @@ import sys
 
 status = ""
 isFinish = False
-
+isActive = True
+serverPort = 3333
+hostIP = "169.254.182.174"
 class Worker(threading.Thread):
 	def __init__(self, startRange, endRange, hashValue, connSocket, host, port):
 		print "~~~ worker instance instanciate ~~~"
@@ -25,7 +27,11 @@ class Worker(threading.Thread):
 		global status
 		status = "nd"
 		print "~~~ into cracking password ~~~"
+		tic = time.clock()
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
+		toc = time.clock()
+		rt = toc - tic
+		answer = answer + ":" + rt
 		print "~~~ get the answer ~~~"
 		print answer
 		print "~~~ sending to server ~~~"
@@ -47,12 +53,17 @@ class Worker(threading.Thread):
 	def crack(self, startRange, endRange, hashValue):
 		global status
 		global isFinish
+		isFinish = False
+		isActive = True
 		status = "nd"
 		for i in range(startRange,endRange+1):
-			if isFinish == False:
+			if (isFinish == False and isActive == True):
 				if(crypt(self.convert(i), "ic") == hashValue):
 					status = "df:" + hashValue  + ":" + self.convert(i)
 					return status
+			else:
+				status = "nf:" + hashValue
+				return status
 		status = "nf:" + hashValue
 		return status
 
@@ -80,17 +91,26 @@ class workerPing(threading.Thread):
 	def run(self):
 		self.connSocket.sendto("wp", (self.host, self.port))
 
+
 def terminateFromServer():
+	global isActive
 	print "~~~ going to quit worker since there is no response from server ~~~"
-	sys.exit()
+	# sys.exit()
+	isActive = False
+	while try == True:
+		socket = s.socket(s.AF_INET, s.SOCK_DGRAM)
+		socket.sendto("rw", (hostIP, serverPort))
+		buf, address = socket.recvfrom(1024)
+		if buf[:2] == "ak":
+			try == False
 
 def stopWorkerWork():
+	global isFinish
 	isFinish = True
 
 if __name__ == '__main__':
-	serverPort = 3333
-	# hostIP = "169.254.182.174"
-	hostIP = "127.0.0.1"
+	global serverPort, hostIP
+	
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
@@ -121,5 +141,5 @@ if __name__ == '__main__':
 			if w.is_alive() == True:
 				print "~~~ thread still alive ~~~"
 				stopWorkerWork()
-				print "~~~ stop worker process"
+				print "~~~ stop worker process ~~~"
 	# 169.254.223.238
