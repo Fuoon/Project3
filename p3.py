@@ -148,7 +148,7 @@ class HandleClientConnection(threading.Thread):
 		if self.data:
 			hashValue = self.data.split(":")[1]
 			startRange = 0
-			endRange = 1000000
+			endRange = 3000000
 			st = Singleton()
 			client = Client(self.addr, hashValue, startRange, endRange)
 			print hashValue
@@ -160,8 +160,8 @@ class HandleClientConnection(threading.Thread):
 					if workers[i].getStatus() == "free":
 						thread = FirstTransferHandler(hashValue, workers[i], startRange, endRange)
 						thread.start()
-						startRange += 1000000
-						endRange += 1000000
+						startRange += 3000000
+						endRange += 3000000
 				client.setStartRange(startRange)
 				client.setEndRange(endRange)
 				clients.append(client)
@@ -212,15 +212,15 @@ class HandleWorkerDoneNotFound(threading.Thread):
 				startRange = x.getStartRange()
 				endRange = x.getEndRange()
 				if endRange != total_com:
-					if endRange+1000000 > total_com:
+					if endRange+3000000 > total_com:
 						endRange = total_com
 					data = "as:" + str(startRange) + ":" + str(endRange) + ":" + self.hashValue
 					self.serverSocket.sendto(data, (self.addr))
 					worker.setEnd(endRange)
 					worker.setStart(startRange)
 					worker.setHashValue(self.hashValue)
-					startRange += 1000000
-					endRange += 1000000
+					startRange += 3000000
+					endRange += 3000000
 					x.setStartRange(startRange)
 					x.setEndRange(endRange)
 					print startRange
@@ -235,8 +235,8 @@ class HandleWorkerDoneNotFound(threading.Thread):
 								endRange = client.getEndRange()
 								thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 								thread.start()
-								startRange += 1000000
-								endRange += 1000000
+								startRange += 3000000
+								endRange += 3000000
 								client.setStartRange(startRange)
 								client.setEndRange(endRange)
 								print startRange
@@ -307,8 +307,8 @@ class HandleWorkerDoneFound(threading.Thread):
 							endRange = client.getEndRange()
 							thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 							thread.start()
-							startRange += 1000000
-							endRange += 1000000
+							startRange += 3000000
+							endRange += 3000000
 							client.setStartRange(startRange)
 							client.setEndRange(endRange)
 			else:
