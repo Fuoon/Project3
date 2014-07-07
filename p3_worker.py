@@ -106,6 +106,8 @@ if __name__ == '__main__':
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
 		t = Timer(15.0,terminateFromServer)
+		p = listenerServer(clientSocket,hostIP,serverPort,"wp")
+		p.start()
 		t.start()
 
 		buf, address = clientSocket.recvfrom(1024)
