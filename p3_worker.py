@@ -11,8 +11,9 @@ status = ""
 isFinish = False
 isActive = True
 serverPort = 3333
-hostIP = "169.254.182.174"
+hostIP = "127.0.0.1" #"169.254.182.174"
 reconnect = True
+ID = "0"
 
 class Worker(threading.Thread):
 	def __init__(self, startRange, endRange, hashValue, connSocket, host, port):
@@ -27,13 +28,15 @@ class Worker(threading.Thread):
 
 	def run(self):
 		global status
+		global ID
 		status = "nd"
 		print "~~~ into cracking password ~~~"
 		tic = time.clock()
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
 		toc = time.clock()
 		rt = toc - tic
-		answer = answer + ":" + str(rt)
+		rt = int(rt)
+		answer = answer + ":" + str(rt) + ":" + ID
 		print "~~~ get the answer ~~~"
 		print answer
 		print "~~~ sending to server ~~~"
@@ -91,7 +94,8 @@ class workerPing(threading.Thread):
 		self.port = port
 
 	def run(self):
-		self.connSocket.sendto("wp", (self.host, self.port))
+		global ID
+		self.connSocket.sendto("wp" + ":" + ID, (self.host, self.port))
 
 
 def reconnectToServer(clientSocket):
@@ -122,6 +126,8 @@ if __name__ == '__main__':
 		t.start()
 		buf, address = clientSocket.recvfrom(1024)
 		if buf[:2] == "ak":
+			a = buf.split(":")
+			ID = a[1]
 			print "~~~ ping ~~~"
 			reconnect = True
 			t.cancel()
