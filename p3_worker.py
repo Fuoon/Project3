@@ -27,7 +27,11 @@ class Worker(threading.Thread):
 		global status
 		status = "nd"
 		print "~~~ into cracking password ~~~"
+		tic = time.clock()
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
+		toc = time.clock()
+		rt = toc - tic
+		answer = answer + ":" + rt
 		print "~~~ get the answer ~~~"
 		print answer
 		print "~~~ sending to server ~~~"
