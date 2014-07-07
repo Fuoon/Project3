@@ -167,7 +167,6 @@ class HandleClientConnection(threading.Thread):
 			timer = Timer(15.0, TerminateClient)
 			st = Singleton()
 			client = Client(self.addr, hashValue, startRange, endRange, timer)
-			print hashValue
 			clients = st.getCliQueue()
 			workers = st.getWorkers()
 			if workers:

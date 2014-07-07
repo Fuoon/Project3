@@ -94,7 +94,7 @@ if __name__ == '__main__':
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
-		t = Timer(15.0,terminateFromServer)
+		t = Timer(15.0, terminateFromServer)
 		t.start()
 		buf, address = clientSocket.recvfrom(1024)
 		if buf[:2] == "ak":
