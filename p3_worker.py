@@ -21,21 +21,17 @@ class Worker(threading.Thread):
 		self.connSocket = connSocket
 		self.host = host
 		self.port = port
-		print self.startRange
-		print self.endRange
-		print self.hashValue
 
 	def run(self):
 		global status
 		status = "nd"
 		print "~~~ into cracking password ~~~"
-		while True:
-			answer = self.crack(self.startRange, self.endRange, self.hashValue)
-			print "~~~ get the answer ~~~"
-			print answer
+		answer = self.crack(self.startRange, self.endRange, self.hashValue)
+		print "~~~ get the answer ~~~"
+		print answer
+		print "~~~ sending to server ~~~"
 		self.connSocket.sendto(answer, (self.host, self.port))
 		status = ""
-		print "~~~ sending to server ~~~"
 		return 
 
 	def convert(self, no, al=0):
@@ -72,28 +68,26 @@ class listenerServer(threading.Thread):
 
 	def run(self):
 		global status
-		print self.connSocket
-		print self.host
-		print self.port
-		print self.message
+		if self.message[:2] == "wp":
+			time.sleep(5)
 		self.connSocket.sendto(self.message, (self.host, self.port))
 		if (self.message[:2] == "df" or self.message[:2] == "nf"):
 			status = ""
-		print "data sent!!!!!!"
 
-# class workerPing(threading>Thread):
-# 	def __init__(self, connSocket, host, port):
-# 		threading.Thread.__init__(self)
-# 		self.connSocket = connSocket
-# 		self.host = host
-# 		self.port = port
+class workerPing(threading.Thread):
+	def __init__(self, connSocket, host, port):
+		threading.Thread.__init__(self)
+		self.connSocket = connSocket
+		self.host = host
+		self.port = port
 
-# 	def run(self):
-# 		self.connSocket.sendto("wp", (self.host, self.port))
+	def run(self):
+		t = Timer(15.0)
+		self.connSocket.sendto("wp", (self.host, self.port))
 
-def terminateFromServer():
-	print "~~~ going to quit worker since there is no response from server ~~~"
-	sys.exit()
+	def terminateFromServer(self):
+		print "~~~ going to quit worker since there is no response from server ~~~"
+		sys.exit()
 
 def stopWorkerWork():
 	isFinish = True
@@ -104,16 +98,21 @@ if __name__ == '__main__':
 	hostIP = "169.254.182.174"
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
+
 	while True:
-		t = Timer(15.0,terminateFromServer)
-		p = listenerServer(clientSocket,hostIP,serverPort,"wp")
-		p.start()
-		t.start()
 
 		buf, address = clientSocket.recvfrom(1024)
-		if buf == "rs":
+		if buf[:2] == "ak":
 			print "~~~ have connection with server ~~~"
+			# t = Timer(15.0,terminateFromServer)
+			# p = workerPing(clientSocket,hostIP,serverPort)
+			# p.start()
+			# t.start()
 		
+		# elif buf[:2] == "rp":
+			# t.cancel()
+
+
 		elif buf[:2] == "as":
 			print "~~~ server aasign task to worker ~~~"
 			print buf
@@ -125,11 +124,7 @@ if __name__ == '__main__':
 			c = listenerServer(clientSocket,hostIP,serverPort,"wa")
 			w.start()
 			c.start()
-		
-		elif buf[:2] == "rp":
-			print "~~~ receive response from server ~~~"
-			t.cancel()
-		
+
 		# elif buf[:2] == "ps":
 		# 	c = listenerServer(clientSocket,hostIP,serverPort,status)
 		# 	print "~~~ got ping from server ~~~"
@@ -146,9 +141,5 @@ if __name__ == '__main__':
 		
 		elif buf == "":
 			print "~~~ no data receive ~~~"
-
-		time.sleep(5)
-		
-
 
 	# 169.254.223.238
