@@ -3,7 +3,7 @@
 from argparse import ArgumentParser
 from crypt import crypt
 import threading
-from thread import Timer
+from threading import Timer
 import socket as s
 import time 
 import sys
