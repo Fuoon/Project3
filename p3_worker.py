@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from argparse import ArgumentParser
 from crypt import crypt
 import threading
@@ -57,7 +56,6 @@ class Worker(threading.Thread):
 		status = "nf:" + hashValue
 		return status
 
-
 class listenerServer(threading.Thread):
 	def __init__(self,connSocket,host,port,message):
 		threading.Thread.__init__(self)
@@ -68,8 +66,6 @@ class listenerServer(threading.Thread):
 
 	def run(self):
 		global status
-		if self.message[:2] == "wp":
-			time.sleep(5)
 		self.connSocket.sendto(self.message, (self.host, self.port))
 		if (self.message[:2] == "df" or self.message[:2] == "nf"):
 			status = ""
@@ -82,37 +78,31 @@ class workerPing(threading.Thread):
 		self.port = port
 
 	def run(self):
-		t = Timer(15.0)
 		self.connSocket.sendto("wp", (self.host, self.port))
 
-	def terminateFromServer(self):
-		print "~~~ going to quit worker since there is no response from server ~~~"
-		sys.exit()
+def terminateFromServer():
+	print "~~~ going to quit worker since there is no response from server ~~~"
+	sys.exit()
 
 def stopWorkerWork():
 	isFinish = True
 
-
 if __name__ == '__main__':
 	serverPort = 3333
-	hostIP = "169.254.182.174"
+	# hostIP = "169.254.182.174"
+	hostIP = "127.0.0.1"
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
-
 	while True:
-
+		t = Timer(15.0,terminateFromServer)
+		t.start()
 		buf, address = clientSocket.recvfrom(1024)
 		if buf[:2] == "ak":
 			print "~~~ have connection with server ~~~"
-			# t = Timer(15.0,terminateFromServer)
-			# p = workerPing(clientSocket,hostIP,serverPort)
-			# p.start()
-			# t.start()
-		
-		# elif buf[:2] == "rp":
-			# t.cancel()
-
-
+			t.cancel()
+			time.sleep(5)
+			p = workerPing(clientSocket,hostIP,serverPort)
+			p.start()
 		elif buf[:2] == "as":
 			print "~~~ server aasign task to worker ~~~"
 			print buf
@@ -124,12 +114,6 @@ if __name__ == '__main__':
 			c = listenerServer(clientSocket,hostIP,serverPort,"wa")
 			w.start()
 			c.start()
-
-		# elif buf[:2] == "ps":
-		# 	c = listenerServer(clientSocket,hostIP,serverPort,status)
-		# 	print "~~~ got ping from server ~~~"
-		# 	c.start()
-		
 		elif buf[:2] == "kp":
 			print "~~~ got kp from server ~~~"
 			c = listenerServer(clientSocket,hostIP,serverPort,"kp")
@@ -138,8 +122,4 @@ if __name__ == '__main__':
 				print "~~~ thread still alive ~~~"
 				stopWorkerWork()
 				print "~~~ stop worker process"
-		
-		elif buf == "":
-			print "~~~ no data receive ~~~"
-
 	# 169.254.223.238

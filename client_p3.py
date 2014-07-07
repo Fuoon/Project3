@@ -53,8 +53,6 @@ if __name__ == '__main__':
 						thread.start()
 					elif data == password:
 						notDone = False
-						print "data finish"
-						print notDone
 						print data
 						break
 				else:

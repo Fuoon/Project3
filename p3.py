@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import socket as s
 import threading 
+from threading import Timer
 import time
 from collections import deque
 
@@ -27,11 +28,12 @@ class Singleton(object):
 		return self.workers
 
 class Client():
-	def __init__(self, addr, hashValue, startRange, endRange):
+	def __init__(self, addr, hashValue, startRange, endRange, timer):
 		self.addr = addr
 		self.hashValue = hashValue
 		self.startRange = startRange
 		self.endRange = endRange
+		self.timer = timer
 
 	def setAddr(self, addr):
 		self.addr = addr 
@@ -57,13 +59,17 @@ class Client():
 	def getEndRange(self):
 		return self.endRange
 
+	def getTimer(self):
+		return self.timer
+
 class Worker():
-	def __init__(self, addr, status):
+	def __init__(self, addr, status, timer):
 		self.addr = addr
 		self.status = status
 		self.hashValue = ''
 		self.startRange = 0  
 		self.endRange = 0
+		self.timer = timer
 
 	def setAddr(self, addr):
 		self.addr = addr
@@ -95,6 +101,9 @@ class Worker():
 	def getEnd(self):
 		return self.endRange
 
+	def getTimer(self):
+		return self.timer
+
 def HandleTerminateAllProcess():
 	st = Singleton()
 	workers = st.getWorkers()
@@ -113,6 +122,12 @@ def HandleTerminateSomeProcess(hashValue):
 			serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 			serverSocket.sendto("kp", workers[i].getAddr())
 			workers[i].setStatus("free")
+
+def TerminateWorker():
+	st = Singleton()
+
+def TerminateClient():
+	st = Singleton()
 
 # def HandleRangeCalculation():
 
@@ -149,8 +164,9 @@ class HandleClientConnection(threading.Thread):
 			hashValue = self.data.split(":")[1]
 			startRange = 0
 			endRange = 3000000
+			timer = Timer(15.0, TerminateClient)
 			st = Singleton()
-			client = Client(self.addr, hashValue, startRange, endRange)
+			client = Client(self.addr, hashValue, startRange, endRange, timer)
 			print hashValue
 			clients = st.getCliQueue()
 			workers = st.getWorkers()
@@ -188,7 +204,8 @@ class HandleWorkerConnection(threading.Thread):
 			st = Singleton()
 			clients = st.getCliQueue()
 			workers = st.getWorkers()
-			worker = Worker(self.addr, "free")
+			timer = Timer(15.0, TerminateWorker)
+			worker = Worker(self.addr, "free", timer)
 			workers[self.addr] = worker
 			if clients:
 				client = clients[0]
@@ -295,7 +312,7 @@ class HandleResponsePingToWorker(threading.Thread):
 
 	def run(self):
 		print "Response ping to worker"
-		self.serverSocket.sendto("rp", self.addr)
+		self.serverSocket.sendto("ak", self.addr)
 		return
 
 class HandleWorkerDoneFound(threading.Thread):
