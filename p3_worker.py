@@ -3,11 +3,14 @@
 from argparse import ArgumentParser
 from crypt import crypt
 import threading
-# from thread import Timer
+from threading import Timer
 import socket as s
 import time 
+import sys
 
 status = ""
+isFinish = False
+
 class Worker(threading.Thread):
 	def __init__(self, startRange, endRange, hashValue, connSocket, host, port):
 		print "~~~ worker instance instanciate ~~~"
@@ -24,10 +27,12 @@ class Worker(threading.Thread):
 
 	def run(self):
 		global status
+		status = "nd"
 		print "~~~ into cracking password ~~~"
-		answer = self.crack(self.startRange, self.endRange, self.hashValue)
-		print "~~~ get the answer ~~~"
-		print answer
+		while True:
+			answer = self.crack(self.startRange, self.endRange, self.hashValue)
+			print "~~~ get the answer ~~~"
+			print answer
 		self.connSocket.sendto(answer, (self.host, self.port))
 		status = ""
 		print "~~~ sending to server ~~~"
@@ -46,12 +51,13 @@ class Worker(threading.Thread):
 
 	def crack(self, startRange, endRange, hashValue):
 		global status
+		global isFinish
 		status = "nd"
 		for i in range(startRange,endRange+1):
-			if(crypt(self.convert(i), "ic") == hashValue):
-				status = "df:" + hashValue  + ":" + self.convert(i)
-
-				return status
+			if isFinish == False:
+				if(crypt(self.convert(i), "ic") == hashValue):
+					status = "df:" + hashValue  + ":" + self.convert(i)
+					return status
 		status = "nf:" + hashValue
 		return status
 
@@ -74,36 +80,23 @@ class listenerServer(threading.Thread):
 		if (self.message[:2] == "df" or self.message[:2] == "nf"):
 			status = ""
 		print "data sent!!!!!!"
-		# self.connSocket.sendto("rw", (self.host, self.port))
-		# status = ""
-		# while True:
-		# 	buf, address = self.connSocket.recvfrom(1024)
-		# 	print "~~~ message from server ~~~"
-		# 	print buf
-		# 	if buf == "rs":
-		# 		print "have connection with server"
-		# 		status = ""
-		# 	elif buf[:2] == "as":
-		# 		print "server assign task to worker"
-		# 		self.connSocket.sendto("wa",(self.host, self.port))
-		# 		l = buf.split(":")
-		# 		s = l[1]
-		# 		e = l[2]
-		# 		h = l[3]
-		# 		w = Worker(s,e,h)
-		# 		status = "nd"
-		# 		print "~~~ before start crack pass ~~~"	
-		# 		w.start()
-		# 		print "~~~ after start crack pass ~~~"	
-		# 	elif buf[:2] == "ps":
-		# 		print "server ask worker for work progress"
-		# 		self.connSocket.sendto(status,(self.host, self.port))
-		# 	elif buf[:2] == "kp":
-		# 		print "kill worker process"
-		# 		w.exit()
-		# 		self.connSocket.sendto("kp",(self.host, self.port))
-		# 	else:
-		# 		print "~~~ something crap! ~~~"
+
+# class workerPing(threading>Thread):
+# 	def __init__(self, connSocket, host, port):
+# 		threading.Thread.__init__(self)
+# 		self.connSocket = connSocket
+# 		self.host = host
+# 		self.port = port
+
+# 	def run(self):
+# 		self.connSocket.sendto("wp", (self.host, self.port))
+
+def terminateFromServer():
+	print "~~~ going to quit worker since there is no response from server ~~~"
+	sys.exit()
+
+def stopWorkerWork():
+	isFinish = True
 
 
 if __name__ == '__main__':
@@ -112,9 +105,13 @@ if __name__ == '__main__':
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
+		t = Timer(15.0,terminateFromServer)
+		t.start()
+
 		buf, address = clientSocket.recvfrom(1024)
 		if buf == "rs":
 			print "~~~ have connection with server ~~~"
+		
 		elif buf[:2] == "as":
 			print "~~~ server aasign task to worker ~~~"
 			print buf
@@ -124,24 +121,32 @@ if __name__ == '__main__':
 			h = l[3]
 			w = Worker(s,e,h,clientSocket,hostIP,serverPort)
 			c = listenerServer(clientSocket,hostIP,serverPort,"wa")
-			w.setDaemon(True)
 			w.start()
 			c.start()
-			w.join()
-			c.join()
-		elif buf[:2] == "ps":
-			c = listenerServer(clientSocket,hostIP,serverPort,status)
-			print "~~~ got ping from server ~~~"
-			c.start()
+		
+		elif buf[:2] == "rp":
+			print "~~~ receive response from server ~~~"
+			t.cancel()
+		
+		# elif buf[:2] == "ps":
+		# 	c = listenerServer(clientSocket,hostIP,serverPort,status)
+		# 	print "~~~ got ping from server ~~~"
+		# 	c.start()
+		
 		elif buf[:2] == "kp":
 			print "~~~ got kp from server ~~~"
 			c = listenerServer(clientSocket,hostIP,serverPort,"kp")
 			c.start()
 			if w.is_alive() == True:
 				print "~~~ thread still alive ~~~"
-			print "~~~ going to delete worker process ~~~"
+				stopWorkerWork()
+				print "~~~ stop worker process"
+		
 		elif buf == "":
 			print "~~~ no data receive ~~~"
+
+		time.sleep(5)
+		
 
 
 	# 169.254.223.238
