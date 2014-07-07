@@ -12,6 +12,8 @@ isFinish = False
 isActive = True
 serverPort = 3333
 hostIP = "169.254.182.174"
+reconnect = True
+
 class Worker(threading.Thread):
 	def __init__(self, startRange, endRange, hashValue, connSocket, host, port):
 		print "~~~ worker instance instanciate ~~~"
@@ -31,7 +33,7 @@ class Worker(threading.Thread):
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
 		toc = time.clock()
 		rt = toc - tic
-		answer = answer + ":" + rt
+		answer = answer + ":" + str(rt)
 		print "~~~ get the answer ~~~"
 		print answer
 		print "~~~ sending to server ~~~"
@@ -92,38 +94,42 @@ class workerPing(threading.Thread):
 		self.connSocket.sendto("wp", (self.host, self.port))
 
 
-def terminateFromServer():
+def reconnectToServer(clientSocket):
 	global isActive
-	print "~~~ going to quit worker since there is no response from server ~~~"
+	global reconnect
+	print "~~~ reconnect to server ~~~"
 	# sys.exit()
 	isActive = False
-	while try == True:
-		socket = s.socket(s.AF_INET, s.SOCK_DGRAM)
-		socket.sendto("rw", (hostIP, serverPort))
-		buf, address = socket.recvfrom(1024)
-		if buf[:2] == "ak":
-			try == False
+	reconnect = False
+	stopWorkerWork()
+	while True:
+		print "Trying to reconnect"
+		clientSocket.sendto("rw", (hostIP, serverPort))
+		if reconnect:
+			print "loop break"
+			break
+		time.sleep(5)
 
 def stopWorkerWork():
 	global isFinish
 	isFinish = True
 
 if __name__ == '__main__':
-	global serverPort, hostIP
-	
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
-		t = Timer(15.0, terminateFromServer)
+		t = Timer(8.0, reconnectToServer, [clientSocket])
 		t.start()
 		buf, address = clientSocket.recvfrom(1024)
 		if buf[:2] == "ak":
-			print "~~~ have connection with server ~~~"
+			print "~~~ ping ~~~"
+			reconnect = True
 			t.cancel()
 			time.sleep(5)
 			p = workerPing(clientSocket,hostIP,serverPort)
 			p.start()
 		elif buf[:2] == "as":
+			t.cancel()
 			print "~~~ server aasign task to worker ~~~"
 			print buf
 			l = buf.split(":")
@@ -135,6 +141,7 @@ if __name__ == '__main__':
 			w.start()
 			c.start()
 		elif buf[:2] == "kp":
+			t.cancel()
 			print "~~~ got kp from server ~~~"
 			c = listenerServer(clientSocket,hostIP,serverPort,"kp")
 			c.start()
