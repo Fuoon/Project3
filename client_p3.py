@@ -32,8 +32,8 @@ if __name__ == '__main__':
 	serverPort = 3333
 	serverHost = '169.254.182.174'
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	# password = os.urandom(2).encode('hex')
-	password = "9999"
+	password = os.urandom(2).encode('hex')
+	# password = "9999"
 	print "password:" + password
 	crypting = crypt(password, "ic")
 	print "hash: " + crypting

@@ -109,7 +109,7 @@ def HandleTerminateSomeProcess(hashValue):
 	print "HandleTerminateSomeProcess"
 	for i in workers:
 		if workers[i].getHashValue() == hashValue:
-			print "Actuall send to worker to terminate process"
+			print "Actual send to worker to terminate process"
 			serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 			serverSocket.sendto("kp", workers[i].getAddr())
 			workers[i].setStatus("free")
@@ -182,12 +182,41 @@ class HandleWorkerConnection(threading.Thread):
 		self.serverSocket = serverSocket
 
 	def run(self):
+		global total_com
 		if self.data:
 			self.serverSocket.sendto("ak", self.addr)
 			st = Singleton()
+			clients = st.getCliQueue()
 			workers = st.getWorkers()
 			worker = Worker(self.addr, "free")
 			workers[self.addr] = worker
+			if clients:
+				client = clients[0]
+				startRange = client.getStartRange()
+				endRange = client.getEndRange()
+				if endRange != total_com:
+					if startRange+3000000 > total_com:
+						endRange = total_com
+					thread = FirstTransferHandler(client.getHashValue(), worker, startRange, endRange)
+					thread.start()
+					if endRange != total_com:
+						startRange += 3000000
+						endRange += 3000000
+					client.setStartRange(startRange)
+					client.setEndRange(endRange)
+				else:
+					client = clients[1]
+					startRange = client.getStartRange()
+					endRange = client.getEndRange()
+					if startRange+3000000 > total_com:
+						endRange = total_com
+					thread = FirstTransferHandler(client.getHashValue(), worker, startRange, endRange)
+					thread.start()
+					if endRange != total_com:
+						startRange += 3000000
+						endRange += 3000000
+					client.setStartRange(startRange)
+					client.setEndRange(endRange)
 			return
 		else:
 			print "Good bye", self.addr
@@ -212,19 +241,18 @@ class HandleWorkerDoneNotFound(threading.Thread):
 				startRange = x.getStartRange()
 				endRange = x.getEndRange()
 				if endRange != total_com:
-					if endRange+3000000 > total_com:
+					if startRange+3000000 > total_com:
 						endRange = total_com
 					data = "as:" + str(startRange) + ":" + str(endRange) + ":" + self.hashValue
 					self.serverSocket.sendto(data, (self.addr))
 					worker.setEnd(endRange)
 					worker.setStart(startRange)
 					worker.setHashValue(self.hashValue)
-					startRange += 3000000
-					endRange += 3000000
+					if endRange != total_com:
+						startRange += 3000000
+						endRange += 3000000
 					x.setStartRange(startRange)
 					x.setEndRange(endRange)
-					print startRange
-					print endRange
 					return
 				else:
 					if len(clients) > 1:
@@ -235,12 +263,11 @@ class HandleWorkerDoneNotFound(threading.Thread):
 								endRange = client.getEndRange()
 								thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 								thread.start()
-								startRange += 3000000
-								endRange += 3000000
+								if endRange != total_com:
+									startRange += 3000000
+									endRange += 3000000
 								client.setStartRange(startRange)
 								client.setEndRange(endRange)
-								print startRange
-								print endRange
 								return
 					else:
 						print "NO MORE CLIENT"
@@ -257,10 +284,6 @@ class HandlePingFromClientConnection(threading.Thread):
 	def run(self):
 		print "ping client"
 		self.serverSocket.sendto("ak", self.addr)
-		# for i in workers:
-		# 	if self.data.split(":")[1] == workers[i].getHashValue():
-		# 		serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
-		# 		serverSocket.sendto("ps", workers[i].getAddr())
 		return
 
 class HandleResponsePingToWorker(threading.Thread):
@@ -320,16 +343,6 @@ class HandleWorkerDoneFound(threading.Thread):
 		else:
 			return
 
-# class HandleWorkerNotDoneNotFound(threading.Thread):
-# 	def __init__(self, data, addr, serverSocket):
-# 		threading.Thread.__init__(self)
-# 		self.data = data
-# 		self.addr = addr 
-# 		self.serverSocket = serverSocket
-
-# 	def run(self):
-# 		print "To handle timer and time out!!!"
-
 if __name__ == '__main__':
 	serverPort = 3333
 	serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
@@ -355,10 +368,6 @@ if __name__ == '__main__':
 			print "Done Found Status"
 			thread = HandleWorkerDoneFound(data, addr, serverSocket)
 			thread.start()
-		# elif data[:2] == "nd":
-		# 	print "Not Done Not Found"
-		# 	thread = HandleWorkerNotDoneNotFound(data, addr, serverSocket)
-		# 	thread.start()
 		elif data[:2] == "wp":
 			print "HandleRespondPingToWorker"
 			thread = HandleResponsePingToWorker(data, addr, serverSocket)
