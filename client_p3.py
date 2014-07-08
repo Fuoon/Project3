@@ -54,24 +54,27 @@ if __name__ == '__main__':
 			time.sleep(5)
 			thread = HandlePingServer(data, addr, clientSocket, crypting)
 			thread.start()
-			while True:
-				timer = Timer(15.0, sendHashToServer, [clientSocket, crypting, serverHost, serverPort])
-				timer.start()
-				data, addr = clientSocket.recvfrom(1024)
-				if data:
-					if data[:2] == "ak":
-						reconnect = True
-						timer.cancel()
-						time.sleep(5)
-						thread = HandlePingServer(data, addr, clientSocket, crypting)
-						thread.start()
-					elif data == password:
-						reconnect = True
-						notDone = False
-						timer.cancel()
-						print data
-						break
-					elif data[:2] == "Cu":
-						timer.cancel()
+			try:
+				while True:
+					timer = Timer(15.0, sendHashToServer, [clientSocket, crypting, serverHost, serverPort])
+					timer.start()
+					data, addr = clientSocket.recvfrom(1024)
+					if data:
+						if data[:2] == "ak":
+							reconnect = True
+							timer.cancel()
+							time.sleep(5)
+							thread = HandlePingServer(data, addr, clientSocket, crypting)
+							thread.start()
+						elif data == password:
+							reconnect = True
+							notDone = False
+							timer.cancel()
+							print data
+							break
+						elif data[:2] == "Cu":
+							timer.cancel()
+			except KeyboardInterrupt:
+				reconnect = True
 		else:
 			print data

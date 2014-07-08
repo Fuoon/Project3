@@ -33,6 +33,7 @@ class Worker(threading.Thread):
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
 		toc = time.clock()
 		rt = toc - tic
+		rt = int(rt)
 		answer = answer + ":" + str(rt)
 		print "~~~ get the answer ~~~"
 		print answer
@@ -118,7 +119,7 @@ if __name__ == '__main__':
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	clientSocket.sendto("rw", (hostIP, serverPort))
 	while True:
-		t = Timer(8.0, reconnectToServer, [clientSocket])
+		t = Timer(15.0, reconnectToServer, [clientSocket])
 		t.start()
 		buf, address = clientSocket.recvfrom(1024)
 		if buf[:2] == "ak":
