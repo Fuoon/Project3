@@ -129,11 +129,11 @@ def HandleTerminateSomeProcess(hashValue):
 			serverSocket.sendto("kp", workers[i].getAddr())
 			workers[i].setStatus("free")
 
-def TerminateWorker():
+def TerminateWorker(worker_id):
 	print "TerminateWorker pop worker out of the dict"
 	st = Singleton()
 
-def TerminateClient():
+def TerminateClient(addr, hashValue):
 	print "TerminateClient pop client out of the list"
 	st = Singleton()
 
@@ -170,7 +170,7 @@ class HandleClientConnection(threading.Thread):
 			hashValue = self.data.split(":")[1]
 			startRange = 0
 			endRange = 3000000
-			timer = Timer(15.0, TerminateClient)
+			timer = Timer(15.0, TerminateClient, [self.addr, hashValue])
 			st = Singleton()
 			client = Client(self.addr, hashValue, startRange, endRange, timer)
 			clients = st.getCliQueue()
@@ -211,8 +211,8 @@ class HandleWorkerConnection(threading.Thread):
 			st = Singleton()
 			clients = st.getCliQueue()
 			workers = st.getWorkers()
-			timer = Timer(15.0, TerminateWorker)
 			worker = Worker(self.addr, "free", timer, str(global_worker_id))
+			timer = Timer(15.0, TerminateWorker, [str(global_worker_id)])
 			global_worker_id += 1
 			worker.getTimer().start()
 			workers[self.addr] = worker
@@ -314,7 +314,7 @@ class HandlePingFromClientConnection(threading.Thread):
 		for x in clients:
 			if x.getAddr()[1] == self.addr[1] and x.getHashValue() == self.hashValue:
 				x.getTimer().cancel()
-				timer = Timer(15.0, TerminateClient)
+				timer = Timer(15.0, TerminateClient, [x.getAddr(), x.getHashValue()])
 				x.setTimer(timer)
 				x.getTimer().start()
 		print "ping client"
@@ -334,7 +334,7 @@ class HandleResponsePingToWorker(threading.Thread):
 		for i in workers:
 			if workers[i].getWorkerID() == self.data.split(":")[1]
 				workers[i].getTimer().cancel()
-				timer = Timer(15.0, TerminateWorker)
+				timer = Timer(15.0, TerminateWorker, [workers[i].getWorkerID()])
 				workers[i].setTimer(timer)
 				workers[i].getTimer().start()
 		print "Response ping to worker"
