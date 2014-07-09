@@ -11,6 +11,7 @@ status = ""
 isFinish = False
 isActive = True
 serverPort = 3333
+hostIP = "10.27.8.56"
 # hostIP = "127.0.0.1"
 # hostIP = "169.254.182.174"
 reconnect = True
@@ -39,10 +40,11 @@ class Worker(threading.Thread):
 		answer = answer + ":" + str(rt)
 		rt = int(rt)
 		answer = answer + ":" + str(rt) + ":" + ID
-		print "~~~ get the answer ~~~"
-		print answer
-		print "~~~ sending to server ~~~"
-		self.connSocket.sendto(answer, (self.host, self.port))
+		if (isFinish == False and isActive == True):
+			print "~~~ get the answer ~~~"
+			print answer
+			print "~~~ sending to server ~~~"
+			self.connSocket.sendto(answer, (self.host, self.port))
 		status = ""
 		return 
 
