@@ -76,5 +76,6 @@ if __name__ == '__main__':
 							timer.cancel()
 			except KeyboardInterrupt:
 				reconnect = True
+				notDone = False
 		else:
 			print data
