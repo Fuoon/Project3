@@ -11,7 +11,8 @@ status = ""
 isFinish = False
 isActive = True
 serverPort = 3333
-hostIP = "127.0.0.1" #"169.254.182.174"
+# hostIP = "127.0.0.1"
+# hostIP = "169.254.182.174"
 reconnect = True
 ID = "0"
 

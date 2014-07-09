@@ -5,8 +5,8 @@ from threading import Timer
 import time
 from collections import deque
 
-# total_com = 57731386986
-total_com = 15018570
+total_com = 57731386986
+# total_com = 15018570
 global_worker_id = 1
 
 class Singleton(object):
@@ -150,17 +150,19 @@ def TerminateWorker(worker_id, addr):
 				endRange = workers[addr].getEnd()
 				del workers[addr]
 				if clients:
+					client_addr = " "
 					for x in clients:
 						print "to create new leftover client into the queue"
 						if x.getHashValue() == hashValue:
 							client_addr = x.getAddr()
-					timer = Timer(15.0, TerminateClient, [client_addr, hashValue])
-					client = Client(client_addr, hashValue, startRange, endRange, timer, "leftover")
-					clients.insert(0, client)
-					print "client that is leftover"
-					print clients[0].getStartRange()
-					print clients[0].getEndRange()
-					print clients[0].getHashValue()
+					if client_addr != " ":
+						timer = Timer(15.0, TerminateClient, [client_addr, hashValue])
+						client = Client(client_addr, hashValue, startRange, endRange, timer, "leftover")
+						clients.insert(0, client)
+						print "client that is leftover"
+						print clients[0].getStartRange()
+						print clients[0].getEndRange()
+						print clients[0].getHashValue()
 			else:
 				del workers[addr]
 				print "destory worker without work"
@@ -197,8 +199,8 @@ def TerminateClient(addr, hashValue):
 				endRange = client.getEndRange()
 				thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 				thread.start()
-				startRange += 3000000
-				endRange += 3000000
+				startRange += 10000000
+				endRange += 10000000
 				client.setStartRange(startRange)
 				client.setEndRange(endRange)
 
@@ -234,7 +236,7 @@ class HandleClientConnection(threading.Thread):
 		if self.data:
 			hashValue = self.data.split(":")[1]
 			startRange = 0
-			endRange = 3000000
+			endRange = 10000000
 			timer = Timer(15.0, TerminateClient, [self.addr, hashValue])
 			st = Singleton()
 			client = Client(self.addr, hashValue, startRange, endRange, timer, "client")
@@ -246,8 +248,8 @@ class HandleClientConnection(threading.Thread):
 					if workers[i].getStatus() == "free":
 						thread = FirstTransferHandler(hashValue, workers[i], startRange, endRange)
 						thread.start()
-						startRange += 3000000
-						endRange += 3000000
+						startRange += 10000000
+						endRange += 10000000
 				client.setStartRange(startRange)
 				client.setEndRange(endRange)
 				client.getTimer().start()
@@ -286,26 +288,26 @@ class HandleWorkerConnection(threading.Thread):
 				startRange = client.getStartRange()
 				endRange = client.getEndRange()
 				if endRange != total_com:
-					if startRange+3000000 > total_com:
+					if startRange+10000000 > total_com:
 						endRange = total_com
 					thread = FirstTransferHandler(client.getHashValue(), worker, startRange, endRange)
 					thread.start()
 					if endRange != total_com:
-						startRange += 3000000
-						endRange += 3000000
+						startRange += 10000000
+						endRange += 10000000
 					client.setStartRange(startRange)
 					client.setEndRange(endRange)
 				else:
 					client = clients[1]
 					startRange = client.getStartRange()
 					endRange = client.getEndRange()
-					if startRange+3000000 > total_com:
+					if startRange+10000000 > total_com:
 						endRange = total_com
 					thread = FirstTransferHandler(client.getHashValue(), worker, startRange, endRange)
 					thread.start()
 					if endRange != total_com:
-						startRange += 3000000
-						endRange += 3000000
+						startRange += 10000000
+						endRange += 10000000
 					client.setStartRange(startRange)
 					client.setEndRange(endRange)
 			return
@@ -334,7 +336,7 @@ class HandleWorkerDoneNotFound(threading.Thread):
 						startRange = x.getStartRange()
 						endRange = x.getEndRange()
 						if endRange != total_com:
-							if startRange+3000000 > total_com:
+							if startRange+10000000 > total_com:
 								endRange = total_com
 							data = "as:" + str(startRange) + ":" + str(endRange) + ":" + self.hashValue
 							self.serverSocket.sendto(data, (self.addr))
@@ -342,8 +344,8 @@ class HandleWorkerDoneNotFound(threading.Thread):
 							worker.setStart(startRange)
 							worker.setHashValue(self.hashValue)
 							if endRange != total_com:
-								startRange += 3000000
-								endRange += 3000000
+								startRange += 10000000
+								endRange += 10000000
 							x.setStartRange(startRange)
 							x.setEndRange(endRange)
 							return
@@ -357,8 +359,8 @@ class HandleWorkerDoneNotFound(threading.Thread):
 										thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 										thread.start()
 										if endRange != total_com:
-											startRange += 3000000
-											endRange += 3000000
+											startRange += 10000000
+											endRange += 10000000
 										client.setStartRange(startRange)
 										client.setEndRange(endRange)
 										return
@@ -457,8 +459,8 @@ class HandleWorkerDoneFound(threading.Thread):
 							endRange = client.getEndRange()
 							thread = FirstTransferHandler(client.getHashValue(), workers[i], startRange, endRange)
 							thread.start()
-							startRange += 3000000
-							endRange += 3000000
+							startRange += 10000000
+							endRange += 10000000
 							client.setStartRange(startRange)
 							client.setEndRange(endRange)
 			else:
@@ -474,28 +476,31 @@ if __name__ == '__main__':
 	serverPort = 3333
 	serverSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
 	serverSocket.bind(('',serverPort))
-	while True:
-		data, addr = serverSocket.recvfrom(1024)
-		if data[:2] == "rw":
-			print "HandleWorkerConnection"
-			thread = HandleWorkerConnection(data, addr, serverSocket)
-			thread.start()
-		elif data[:2] == "cp":
-			print "HandleClientConnection"
-			thread = HandleClientConnection(data, addr, serverSocket)
-			thread.start()
-		elif data[:2] == "ps":
-			thread = HandlePingFromClientConnection(data, addr, serverSocket)
-			thread.start()
-		elif data[:2] == "nf":
-			print "Done and Not Found"
-			thread = HandleWorkerDoneNotFound(data, addr, serverSocket)
-			thread.start()
-		elif data[:2] == "df":
-			print "Done Found Status"
-			thread = HandleWorkerDoneFound(data, addr, serverSocket)
-			thread.start()
-		elif data[:2] == "wp":
-			print "HandleRespondPingToWorker"
-			thread = HandleResponsePingToWorker(data, addr, serverSocket)
-			thread.start()
+	try:
+		while True:
+			data, addr = serverSocket.recvfrom(1024)
+			if data[:2] == "rw":
+				print "HandleWorkerConnection"
+				thread = HandleWorkerConnection(data, addr, serverSocket)
+				thread.start()
+			elif data[:2] == "cp":
+				print "HandleClientConnection"
+				thread = HandleClientConnection(data, addr, serverSocket)
+				thread.start()
+			elif data[:2] == "ps":
+				thread = HandlePingFromClientConnection(data, addr, serverSocket)
+				thread.start()
+			elif data[:2] == "nf":
+				print "Done and Not Found"
+				thread = HandleWorkerDoneNotFound(data, addr, serverSocket)
+				thread.start()
+			elif data[:2] == "df":
+				print "Done Found Status"
+				thread = HandleWorkerDoneFound(data, addr, serverSocket)
+				thread.start()
+			elif data[:2] == "wp":
+				print "HandleRespondPingToWorker"
+				thread = HandleResponsePingToWorker(data, addr, serverSocket)
+				thread.start()
+	except KeyboardInterrupt:
+		print "hello"

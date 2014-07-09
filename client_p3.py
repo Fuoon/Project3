@@ -41,7 +41,7 @@ if __name__ == '__main__':
 	# serverHost = '169.254.182.174'
 	serverHost = '127.0.0.1'
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	password = os.urandom(2).encode('hex')
+	password = os.urandom(3).encode('hex')
 	# password = "9999"
 	print "password:" + password
 	crypting = crypt(password, "ic")
