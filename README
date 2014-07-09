@@ -1,0 +1,37 @@
+HOW TO INSTALL THE PROGRAM:
+
+1. copy server.py to /usr/local/bin
+2. type "chmod +x server.py" in terminal
+3. type "mv server.py ./server" in terminal 
+4. copy worker_client.py to /usr/local/bin
+5. type "chmod +x worker_client.py" in terminal
+6. type "mv worker_client.py ./worker_client" in terminal 
+7. copy request_client.py to /usr/local/bin
+8. type "chmod +x request_client.py" in terminal
+9. type "mv request_client.py ./request_client" in terminal 
+
+PROTOCAL USE IN PROGRAM:
+
+SERVER -> WORKER
+
+"ak:<ID>" - server return status that the server still alive with the unique ID of worker
+"as:<start>:<end>:<hash>" - server send this to assign task to the worker
+"kp" - server send this to tell the worker to stop its task
+
+WORKER -> SERVER
+
+"rw" - worker send this status to ask to connect with server
+"wp:<ID>" - worker ping to server to ensure to server still receive message from worker. send with ID
+"wa" - worker send this status to acknowledge the server that the worker receive task
+"nf:<hash>:<ID>" - worker return this to server that the password is not found, given its ID as well
+"df:<hash>:<password>:<ID>" - worker return this to server that the password is found, given its ID as well
+
+SERVER -> CLIENT
+
+"ak" - server return sttus that the server still alive
+"Cu" - server send this to client that there is no worker in the system at the moment 
+"<hash>:<password>" -  server send back the hash and the password back to the client
+
+CLIENT -> SERVER
+
+"cp:<hash>" - client send hash to server

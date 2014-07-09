@@ -23,7 +23,7 @@ ID = "0"
 
 class Worker(threading.Thread):
 	def __init__(self, startRange, endRange, hashValue, connSocket, host, port):
-		print "~~~ worker instance instanciate ~~~"
+		print "worker instance instanciate"
 		threading.Thread.__init__(self)
 		self.startRange = int(startRange)
 		self.endRange = int(endRange)
@@ -36,13 +36,11 @@ class Worker(threading.Thread):
 		global status
 		global ID
 		status = "nd"
-		print "~~~ into cracking password ~~~"
+		print "get work from server"
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
 		answer = answer + ":" + ID
 		if (isFinish == False and isActive == True):
-			print "~~~ get the answer ~~~"
-			print answer
-			print "~~~ sending to server ~~~"
+			print "send response back to server: " + answer
 			self.connSocket.sendto(answer, (self.host, self.port))
 		status = ""
 		return 
@@ -107,7 +105,6 @@ class workerPing(threading.Thread):
 def reconnectToServer(clientSocket):
 	global isActive
 	global reconnect
-	print "~~~ reconnect to server ~~~"
 	# sys.exit()
 	isActive = False
 	reconnect = False
@@ -116,7 +113,6 @@ def reconnectToServer(clientSocket):
 		print "Trying to reconnect"
 		clientSocket.sendto("rw", (hostIP, serverPort))
 		if reconnect:
-			print "loop break"
 			break
 		time.sleep(5)
 
@@ -137,7 +133,6 @@ if __name__ == '__main__':
 			if buf[:2] == "ak":
 				a = buf.split(":")
 				ID = a[1]
-				print "~~~ ping ~~~"
 				reconnect = True
 				t.cancel()
 				time.sleep(5)
@@ -145,7 +140,7 @@ if __name__ == '__main__':
 				p.start()
 			elif buf[:2] == "as":
 				t.cancel()
-				print "~~~ server aasign task to worker ~~~"
+				print "server aasign task to worker"
 				print buf
 				l = buf.split(":")
 				s = l[1]
@@ -157,13 +152,12 @@ if __name__ == '__main__':
 				c.start()
 			elif buf[:2] == "kp":
 				t.cancel()
-				print "~~~ got kp from server ~~~"
+				print "got killing process signal from server"
 				c = listenerServer(clientSocket,hostIP,serverPort,"kp")
 				c.start()
 				if w.is_alive() == True:
-					print "~~~ thread still alive ~~~"
 					stopWorkerWork()
-					print "~~~ stop worker process ~~~"
+					print "stop worker process"
 		# 169.254.223.238
 	except KeyboardInterrupt:
 		reconnect = True

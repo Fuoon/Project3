@@ -21,10 +21,8 @@ def sendHashToServer(clientSocket, crypting, serverHost, serverPort):
 	print "try sending to server again"
 	reconnect = False
 	while True:
-		print "IN LOOP"
 		clientSocket.sendto("cp:" + crypting, (serverHost, serverPort))
 		if reconnect:
-			print "loop break"
 			break
 		time.sleep(5)
 
@@ -38,7 +36,6 @@ class HandlePingServer(threading.Thread):
 
 	def run(self):
 		global notDone
-		print "Ping Server"
 		if notDone:
 			self.clientSocket.sendto("ps:" + self.crypting, (self.addr))
 		else:
