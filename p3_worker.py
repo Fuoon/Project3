@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from argparse import ArgumentParser
+import argparse
 from crypt import crypt
 import threading
 from threading import Timer
@@ -7,13 +7,17 @@ import socket as s
 import time 
 import sys
 
+parser = argparse.ArgumentParser()
+parser.add_argument("host")
+parser.add_argument("port")
+args = parser.parse_args()
+
 status = ""
 isFinish = False
 isActive = True
-serverPort = 3333
-hostIP = "10.27.8.56"
-# hostIP = "127.0.0.1"
-# hostIP = "169.254.182.174"
+kp = False
+serverPort = int(args.port)
+hostIP = args.host
 reconnect = True
 ID = "0"
 
@@ -33,13 +37,8 @@ class Worker(threading.Thread):
 		global ID
 		status = "nd"
 		print "~~~ into cracking password ~~~"
-		tic = time.clock()
 		answer = self.crack(self.startRange, self.endRange, self.hashValue)
-		toc = time.clock()
-		rt = toc - tic
-		answer = answer + ":" + str(rt)
-		rt = int(rt)
-		answer = answer + ":" + str(rt) + ":" + ID
+		answer = answer + ":" + ID
 		if (isFinish == False and isActive == True):
 			print "~~~ get the answer ~~~"
 			print answer
@@ -62,16 +61,20 @@ class Worker(threading.Thread):
 	def crack(self, startRange, endRange, hashValue):
 		global status
 		global isFinish
+		global kp
 		isFinish = False
 		isActive = True
 		status = "nd"
 		for i in range(startRange,endRange+1):
-			if (isFinish == False and isActive == True):
+			if (isFinish == False and isActive == True and kp == False):
 				if(crypt(self.convert(i), "ic") == hashValue):
 					status = "df:" + hashValue  + ":" + self.convert(i)
 					return status
-			else:
+			elif isFinish == True and isActive == True and kp == False:
 				status = "nf:" + hashValue
+				return status
+			elif isFinish == True and isActive == True and kp == True:
+				status = ""
 				return status
 		status = "nf:" + hashValue
 		return status
@@ -119,7 +122,9 @@ def reconnectToServer(clientSocket):
 
 def stopWorkerWork():
 	global isFinish
+	global kp
 	isFinish = True
+	kp = True
 
 if __name__ == '__main__':
 	clientSocket = s.socket(s.AF_INET, s.SOCK_DGRAM)
@@ -162,4 +167,5 @@ if __name__ == '__main__':
 		# 169.254.223.238
 	except KeyboardInterrupt:
 		reconnect = True
-		# isFinish = True
+		isFinish = True
+		kp = True

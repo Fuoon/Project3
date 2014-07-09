@@ -1,9 +1,17 @@
+#!/usr/bin/env python
 import socket
 import time
 import os
 from crypt import crypt
 import threading
 from threading import Timer
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("host")
+parser.add_argument("port")
+parser.add_argument("hash_value")
+args = parser.parse_args()
 
 notDone = True
 reconnect = True
@@ -37,45 +45,43 @@ class HandlePingServer(threading.Thread):
 			return
 
 if __name__ == '__main__':
-	serverPort = 3333
-	# serverHost = '169.254.182.174'
-	serverHost = '127.0.0.1'
+	serverPort = int(args.port)
+	serverHost = args.host
 	clientSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	password = os.urandom(2).encode('hex')
-	# password = "9999"
-	print "password:" + password
-	crypting = crypt(password, "ic")
-	print "hash: " + crypting
-	clientSocket.sendto("cp:" + crypting, (serverHost, serverPort))
-	data, addr = clientSocket.recvfrom(1024)
-	if data:
-		if data[:2] == "ak":
-			reconnect = True
-			time.sleep(5)
-			thread = HandlePingServer(data, addr, clientSocket, crypting)
-			thread.start()
-			try:
-				while True:
-					timer = Timer(15.0, sendHashToServer, [clientSocket, crypting, serverHost, serverPort])
-					timer.start()
-					data, addr = clientSocket.recvfrom(1024)
-					if data:
-						if data[:2] == "ak":
-							reconnect = True
-							timer.cancel()
-							time.sleep(5)
-							thread = HandlePingServer(data, addr, clientSocket, crypting)
-							thread.start()
-						elif data == password:
-							reconnect = True
-							notDone = False
-							timer.cancel()
-							print data
-							break
-						elif data[:2] == "Cu":
-							timer.cancel()
-			except KeyboardInterrupt:
+	crypting = args.hash_value
+	if crypting == "icIrTgO6KcMrs":
+		print ""
+	else:
+		clientSocket.sendto("cp:" + crypting, (serverHost, serverPort))
+		data, addr = clientSocket.recvfrom(1024)
+		if data:
+			if data[:2] == "ak":
 				reconnect = True
-				notDone = False
-		else:
-			print data
+				time.sleep(5)
+				thread = HandlePingServer(data, addr, clientSocket, crypting)
+				thread.start()
+				try:
+					while True:
+						timer = Timer(15.0, sendHashToServer, [clientSocket, crypting, serverHost, serverPort])
+						timer.start()
+						data, addr = clientSocket.recvfrom(1024)
+						if data:
+							if data[:2] == "ak":
+								reconnect = True
+								timer.cancel()
+								time.sleep(5)
+								thread = HandlePingServer(data, addr, clientSocket, crypting)
+								thread.start()
+							elif data.split(":")[0] == crypting:
+								reconnect = True
+								notDone = False
+								timer.cancel()
+								print data.split(":")[1]
+								break
+							elif data[:2] == "Cu":
+								timer.cancel()
+				except KeyboardInterrupt:
+					reconnect = True
+					notDone = False
+			else:
+				print data
